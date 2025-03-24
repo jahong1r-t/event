@@ -9,11 +9,15 @@ import org.telegram.telegrambots.meta.api.objects.PhotoSize;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import uz.event.entity.Event;
+import uz.event.entity.User;
 import uz.event.service.AuthService;
 import uz.event.util.Bot;
 
 import java.io.File;
 import java.util.List;
+
+import static uz.event.db.Datasource.*;
 
 public class MainBot extends TelegramLongPollingBot {
 
@@ -22,7 +26,39 @@ public class MainBot extends TelegramLongPollingBot {
     public void onUpdateReceived(Update update) {
         if (update.hasMessage()) {
             new AuthService().service(update);
+        } else if (update.hasCallbackQuery()) {
+            if (update.getCallbackQuery().getData().startsWith("event:")) {
+                getEventInfo(update.getCallbackQuery().getFrom().getId(), update.getCallbackQuery().getData().substring(6));
+            } else if (update.getCallbackQuery().getData().startsWith("buy:")) {
+                buyEvent(update.getCallbackQuery().getFrom().getId(), update.getCallbackQuery().getData().substring(4));
+            }
         }
+    }
+
+    private void buyEvent(Long chatId, String id) {
+        User user = userMap.get(chatId);
+        Event event = eventMap.get(id);
+
+        if (user.getBalance() >= event.getPrice()) {
+            event.setAvailableSpace(event.getAvailableSpace() - 1);
+            user.setBalance(user.getBalance() - event.getPrice());
+            user.getEventIds().add(event.getId());
+        } else {
+            sendMessage(chatId, "Pul yetmaydi");
+        }
+    }
+
+    private void getEventInfo(Long chatId, String id) {
+        Event event = eventMap.get(id);
+
+        String result = "📅 Tadbir: " + event.getName() + "\n" +
+                "💰 Narxi: " + event.getPrice() + " so'm\n" +
+                "📝 Tavsif: " + event.getDescription() + "\n" +
+                "👥 Sig‘imi: " + event.getCapacity() + "\n" +
+                "🎟 Mavjud joylar: " + event.getAvailableSpace() + "\n" +
+                "📆 Sana: " + event.getDate() + "\n";
+
+        sendMessage(chatId, result);
     }
 
     @Override

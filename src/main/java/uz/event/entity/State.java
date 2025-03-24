@@ -10,5 +10,6 @@ public enum State {
     ADD_EVENT_DATE,
     EDIT_EVENT_ID,
     EDIT_EVENT_FIELD,
-    DELETE_EVENT
+    DELETE_EVENT,
+    MONEY
 }
