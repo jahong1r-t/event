@@ -5,7 +5,9 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
+import uz.event.entity.Event;
 import uz.event.entity.State;
+import uz.event.entity.User;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -15,6 +17,10 @@ import java.util.Map;
 public class Datasource {
 
     public static Map<Long, State> stateMap = new HashMap<>();
+
+    public static Map<String, Event> eventMap = new HashMap<>();
+
+    public static Map<Long, User> userMap = new HashMap<>();
 
     public static ReplyKeyboardMarkup keyboard(String[][] buttons) {
         List<KeyboardRow> rows = new ArrayList<>();
