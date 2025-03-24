@@ -13,5 +13,5 @@ public interface Button {
     String upcomingEvents = "Upcoming events";
     String cancelEvent = "Cancel events";
     String myEvents = "My events";
-    String balance = "Balance";
+    String balance = "Fil balance";
 }

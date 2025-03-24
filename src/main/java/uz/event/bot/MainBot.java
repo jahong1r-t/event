@@ -10,12 +10,17 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import uz.event.entity.Event;
+import uz.event.entity.History;
+import uz.event.entity.HistoryState;
 import uz.event.entity.User;
 import uz.event.service.AuthService;
 import uz.event.util.Bot;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import static uz.event.db.Datasource.*;
 
@@ -30,19 +35,70 @@ public class MainBot extends TelegramLongPollingBot {
             if (update.getCallbackQuery().getData().startsWith("event:")) {
                 getEventInfo(update.getCallbackQuery().getFrom().getId(), update.getCallbackQuery().getData().substring(6));
             } else if (update.getCallbackQuery().getData().startsWith("buy:")) {
-                buyEvent(update.getCallbackQuery().getFrom().getId(), update.getCallbackQuery().getData().substring(4));
+                buyEvent(update.getCallbackQuery().getFrom().getId(), update.getCallbackQuery().getData().substring(4), update.getCallbackQuery().getMessage().getDate(), update.getCallbackQuery().getFrom());
+            } else if (update.getCallbackQuery().getData().startsWith("cancel:")) {
+                cancelEvent(update.getCallbackQuery().getFrom().getId(), update.getCallbackQuery().getData().substring(7), update.getCallbackQuery().getMessage().getDate(), update.getCallbackQuery().getFrom());
             }
         }
     }
 
-    private void buyEvent(Long chatId, String id) {
+    private void cancelEvent(Long chatId, String id, int unixTimestamp, org.telegram.telegrambots.meta.api.objects.User from) {
+        Event event = eventMap.get(id);
+        User user = userMap.get(chatId);
+        User admin = userMap.get(Bot.ADMIN);
+
+        user.getEventIds().remove(event.getId());
+
+        event.setAvailableSpace(event.getAvailableSpace() + 1);
+
+        double discountedPrice = event.getPrice() * 0.8;
+
+        admin.setBalance(admin.getBalance() - discountedPrice);
+        user.setBalance(user.getBalance() + discountedPrice);
+
+        sendMessage(chatId, "20% o'zimizga olib qoldik rozi bo'ling");
+
+        String userName = from.getUserName() != null ? from.getUserName() : from.getFirstName();
+
+        Date date = new Date(unixTimestamp * 1000L);
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String formattedDate = formatter.format(date);
+
+
+        History build = History.builder().id(UUID.randomUUID().toString()).userId(chatId).userName(userName).date(formattedDate).historyState(HistoryState.CANCEL).build();
+
+        historyMap.put(build.getId(), build);
+
+    }
+
+    private void buyEvent(Long chatId, String id, int unixTimestamp, org.telegram.telegrambots.meta.api.objects.User from) {
         User user = userMap.get(chatId);
         Event event = eventMap.get(id);
 
         if (user.getBalance() >= event.getPrice()) {
-            event.setAvailableSpace(event.getAvailableSpace() - 1);
-            user.setBalance(user.getBalance() - event.getPrice());
-            user.getEventIds().add(event.getId());
+            if (event.getAvailableSpace() > 0) {
+                event.setAvailableSpace(event.getAvailableSpace() - 1);
+                user.setBalance(user.getBalance() - event.getPrice());
+                user.getEventIds().add(event.getId());
+                User admin = userMap.get(Bot.ADMIN);
+                admin.setBalance(admin.getBalance() + event.getPrice());
+                sendMessage(chatId, "Sotib olindi");
+
+
+                String userName = from.getUserName() != null ? from.getUserName() : from.getFirstName();
+
+                Date date = new Date(unixTimestamp * 1000L);
+                SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                String formattedDate = formatter.format(date);
+
+
+                History build = History.builder().id(UUID.randomUUID().toString()).userId(chatId).userName(userName).date(formattedDate).historyState(HistoryState.BUY).build();
+
+                historyMap.put(build.getId(), build);
+            } else {
+                sendMessage(chatId, "Sizga joy yo'q");
+            }
+
         } else {
             sendMessage(chatId, "Pul yetmaydi");
         }

@@ -5,15 +5,14 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.ArrayList;
-
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
 @Builder
-public class User {
-    private Long chatId;
+public class History {
+    private String id;
+    private Long userId;
     private String userName;
-    private ArrayList<String> eventIds;
-    private Double balance;
+    private String date;
+    private HistoryState historyState;
 }

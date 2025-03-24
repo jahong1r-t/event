@@ -6,6 +6,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMar
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import uz.event.entity.Event;
+import uz.event.entity.History;
 import uz.event.entity.State;
 import uz.event.entity.User;
 
@@ -18,6 +19,8 @@ public class Datasource {
     public static Map<String, Event> eventMap = new HashMap<>();
 
     public static Map<Long, User> userMap = new HashMap<>();
+
+    public static Map<String, History> historyMap = new HashMap<>();
 
 
     static {

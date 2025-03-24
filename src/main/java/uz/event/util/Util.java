@@ -12,6 +12,6 @@ public interface Util {
             {showEventUser, eventInfo},
             {buyTicket, upcomingEvents},
             {cancelEvent, myEvents},
-            {balance}
+            {balance,"Show balance"}
     };
 }
