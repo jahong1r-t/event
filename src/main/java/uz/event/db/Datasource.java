@@ -6,6 +6,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMar
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import uz.event.entity.Event;
+import uz.event.entity.History;
 import uz.event.entity.State;
 import uz.event.entity.User;
 
@@ -19,7 +20,11 @@ public class Datasource {
 
     public static Map<Long, User> userMap = new HashMap<>();
 
+    public static Map<String, History> historyMap = new HashMap<>();
+
     static {
+
+        userMap.put(23352352352L, new User(23352352352L, "ewgwg", new ArrayList<>(), 0.0d));
         Event event1 = Event.builder()
                 .id(UUID.randomUUID().toString())
                 .name("Standup")
