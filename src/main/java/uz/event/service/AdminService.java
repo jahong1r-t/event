@@ -3,13 +3,18 @@ package uz.event.service;
 
 import lombok.SneakyThrows;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import uz.event.bot.MainBot;
 import uz.event.entity.Event;
+import uz.event.entity.History;
+import uz.event.entity.HistoryState;
 import uz.event.entity.State;
 import uz.event.util.Bot;
 import uz.event.util.Util;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -21,7 +26,7 @@ public class AdminService extends MainBot {
     Event event;
 
     @SneakyThrows
-    public void service(Long chatId, String text) {
+    public void service(Long chatId, String text, Message message) {
         stateMap.putIfAbsent(chatId, State.MAIN_ADMIN);
         State currentState = stateMap.get(chatId);
 
@@ -42,7 +47,8 @@ public class AdminService extends MainBot {
                     sendMessage(Bot.ADMIN, "Enter event ID to delete:\n\n" + formatEvents());
                     stateMap.put(chatId, State.valueOf("DELETE_EVENT"));
                 }
-                case history -> sendMessage(Bot.ADMIN, "History feature coming soon!");
+                case history -> sendMessage(Bot.ADMIN, formatHistory());
+
                 default -> handleStateInput(chatId, text);
             }
         } else if (currentState == State.ADD_EVENT_NAME) {
@@ -88,6 +94,19 @@ public class AdminService extends MainBot {
             sendMessage(Bot.ADMIN, "Event created successfully!\n\n" + formatEvent(event),
                     keyboard(Util.adminMain));
             stateMap.put(chatId, State.MAIN_ADMIN);
+
+            String userName = message.getFrom().getUserName() != null ? message.getFrom().getUserName() : message.getFrom().getFirstName();
+
+            int unixTimestamp = message.getDate();
+            Date date = new Date(unixTimestamp * 1000L);
+
+            SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            String formattedDate = formatter.format(date);
+
+            History build = History.builder().id(UUID.randomUUID().toString()).userId(chatId).userName(userName).date(formattedDate).historyState(HistoryState.CREATE).build();
+
+            historyMap.put(build.getId(), build);
+
         } else if (currentState == State.EDIT_EVENT_ID) {
 
 
@@ -134,6 +153,19 @@ public class AdminService extends MainBot {
             sendMessage(chatId, "Successfully");
             stateMap.remove(chatId);
             userMap.get(chatId).getEventIds().remove(0);
+
+            String userName = message.getFrom().getUserName() != null ? message.getFrom().getUserName() : message.getFrom().getFirstName();
+
+                int unixTimestamp = message.getDate();
+                Date date = new Date(unixTimestamp * 1000L);
+
+                SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                String formattedDate = formatter.format(date);
+
+                History build = History.builder().id(UUID.randomUUID().toString()).userId(chatId).userName(userName).date(formattedDate).historyState(HistoryState.EDIT).build();
+
+                historyMap.put(build.getId(), build);
+
         } else if (currentState == State.EDIT_EVENT_PRICE) {
             String s = userMap.get(chatId).getEventIds().get(0);
             Event event1 = eventMap.get(s);
@@ -141,6 +173,18 @@ public class AdminService extends MainBot {
             sendMessage(chatId, "Successfully");
             stateMap.remove(chatId);
             userMap.get(chatId).getEventIds().remove(0);
+
+            String userName = message.getFrom().getUserName() != null ? message.getFrom().getUserName() : message.getFrom().getFirstName();
+
+                int unixTimestamp = message.getDate();
+                Date date = new Date(unixTimestamp * 1000L);
+
+                SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                String formattedDate = formatter.format(date);
+
+                History build = History.builder().id(UUID.randomUUID().toString()).userId(chatId).userName(userName).date(formattedDate).historyState(HistoryState.EDIT).build();
+
+                historyMap.put(build.getId(), build);
         } else if (currentState == State.EDIT_EVENT_DESC) {
             String s = userMap.get(chatId).getEventIds().get(0);
             Event event1 = eventMap.get(s);
@@ -148,6 +192,18 @@ public class AdminService extends MainBot {
             sendMessage(chatId, "Successfully");
             stateMap.remove(chatId);
             userMap.get(chatId).getEventIds().remove(0);
+
+            String userName = message.getFrom().getUserName() != null ? message.getFrom().getUserName() : message.getFrom().getFirstName();
+
+                int unixTimestamp = message.getDate();
+                Date date = new Date(unixTimestamp * 1000L);
+
+                SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                String formattedDate = formatter.format(date);
+
+                History build = History.builder().id(UUID.randomUUID().toString()).userId(chatId).userName(userName).date(formattedDate).historyState(HistoryState.EDIT).build();
+
+                historyMap.put(build.getId(), build);
         } else if (currentState == State.EDIT_EVENT_DATE) {
             String s = userMap.get(chatId).getEventIds().get(0);
             Event event1 = eventMap.get(s);
@@ -155,8 +211,22 @@ public class AdminService extends MainBot {
             sendMessage(chatId, "Successfully");
             stateMap.remove(chatId);
             userMap.get(chatId).getEventIds().remove(0);
+
+            String userName = message.getFrom().getUserName() != null ? message.getFrom().getUserName() : message.getFrom().getFirstName();
+
+                int unixTimestamp = message.getDate();
+                Date date = new Date(unixTimestamp * 1000L);
+
+                SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                String formattedDate = formatter.format(date);
+
+                History build = History.builder().id(UUID.randomUUID().toString()).userId(chatId).userName(userName).date(formattedDate).historyState(HistoryState.EDIT).build();
+
+                historyMap.put(build.getId(), build);
         }
     }
+
+
 
     @SneakyThrows
     private void handleStateInput(Long chatId, String text) {
@@ -242,6 +312,21 @@ public class AdminService extends MainBot {
     private String getLastEventId(Long chatId) {
         ArrayList<String> eventIds = userMap.get(chatId).getEventIds();
         return eventIds.get(eventIds.size() - 1);
+    }
+
+    public static String formatHistory() {
+        StringBuilder result = new StringBuilder();
+        AtomicInteger index = new AtomicInteger(1);
+
+        historyMap.forEach((id, history) -> {
+            result.append(index.getAndIncrement()).append(". 📜 History ID: `").append(history.getId()).append("`\n")
+                    .append("   👤 Foydalanuvchi: ").append(history.getUserName()).append(" (ID: ").append(history.getUserId()).append(")\n")
+                    .append("   📆 Sana: ").append(history.getDate()).append("\n")
+                    .append("   🔄 Holat: ").append(history.getHistoryState()).append("\n")
+                    .append("———————————————\n");
+        });
+
+        return result.toString();
     }
 
     public static String formatEvents() {
