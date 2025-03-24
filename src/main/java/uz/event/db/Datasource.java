@@ -19,6 +19,7 @@ public class Datasource {
 
     public static Map<Long, User> userMap = new HashMap<>();
 
+
     static {
         Event event1 = Event.builder()
                 .id(UUID.randomUUID().toString())

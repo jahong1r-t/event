@@ -1,6 +1,8 @@
+
 package uz.event.service;
 
 import lombok.SneakyThrows;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import uz.event.bot.MainBot;
 import uz.event.entity.Event;
 import uz.event.entity.State;
@@ -8,6 +10,7 @@ import uz.event.util.Bot;
 import uz.event.util.Util;
 
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -15,21 +18,22 @@ import static uz.event.db.Datasource.*;
 import static uz.event.util.Button.*;
 
 public class AdminService extends MainBot {
+    Event event;
+
     @SneakyThrows
     public void service(Long chatId, String text) {
         stateMap.putIfAbsent(chatId, State.MAIN_ADMIN);
         State currentState = stateMap.get(chatId);
 
+
         if (currentState == State.MAIN_ADMIN) {
             switch (text) {
-                case "/start" ->
-                        sendMessage(Bot.ADMIN, "Welcome to our bot", keyboard(Util.adminMain));
+                case "/start" -> sendMessage(Bot.ADMIN, "Welcome to our bot", keyboard(Util.adminMain));
                 case addEvent -> {
                     sendMessage(Bot.ADMIN, "Enter event name");
                     stateMap.put(chatId, State.valueOf("ADD_EVENT_NAME"));
                 }
-                case showEvent ->
-                        sendMessage(Bot.ADMIN, formatEvents());
+                case showEvent -> sendMessage(Bot.ADMIN, formatEvents());
                 case editEvent -> {
                     sendMessage(Bot.ADMIN, "Enter event ID to edit:\n\n" + formatEvents());
                     stateMap.put(chatId, State.valueOf("EDIT_EVENT_ID"));
@@ -38,17 +42,119 @@ public class AdminService extends MainBot {
                     sendMessage(Bot.ADMIN, "Enter event ID to delete:\n\n" + formatEvents());
                     stateMap.put(chatId, State.valueOf("DELETE_EVENT"));
                 }
-                case history ->
-                        sendMessage(Bot.ADMIN, "History feature coming soon!");
-                default ->
-                        handleStateInput(chatId, text);
+                case history -> sendMessage(Bot.ADMIN, "History feature coming soon!");
+                default -> handleStateInput(chatId, text);
             }
-        }else if (currentState==State.ADD_EVENT_NAME){
+        } else if (currentState == State.ADD_EVENT_NAME) {
             Event newEvent = Event.builder().name(text).build();
             userMap.get(chatId).getEventIds().add(newEvent.getId());
             sendMessage(Bot.ADMIN, "Enter event price");
             stateMap.put(chatId, State.valueOf("ADD_EVENT_PRICE"));
             eventMap.put(newEvent.getId(), newEvent);
+        } else if (currentState == State.ADD_EVENT_PRICE) {
+            try {
+                int price = Integer.parseInt(text);
+                String eventId = getLastEventId(chatId);
+                Event event = eventMap.get(eventId);
+                event.setPrice(price);
+                sendMessage(Bot.ADMIN, "Enter event description");
+                stateMap.put(chatId, State.valueOf("ADD_EVENT_DESC"));
+            } catch (NumberFormatException e) {
+                sendMessage(Bot.ADMIN, "Please enter a valid number for price");
+            }
+        } else if (currentState == State.ADD_EVENT_DESC) {
+            String eventId = getLastEventId(chatId);
+            Event event = eventMap.get(eventId);
+            event.setDescription(text);
+            sendMessage(Bot.ADMIN, "Enter event capacity");
+            stateMap.put(chatId, State.valueOf("ADD_EVENT_CAPACITY"));
+        } else if (currentState == State.ADD_EVENT_CAPACITY) {
+            try {
+                int capacity = Integer.parseInt(text);
+                String eventId = getLastEventId(chatId);
+                Event event = eventMap.get(eventId);
+                event.setCapacity(capacity);
+                event.setAvailableSpace(capacity);
+                sendMessage(Bot.ADMIN, "Enter event date (YYYY-MM-DD)");
+                stateMap.put(chatId, State.valueOf("ADD_EVENT_DATE"));
+            } catch (NumberFormatException e) {
+                sendMessage(Bot.ADMIN, "Please enter a valid number for capacity");
+            }
+        } else if (currentState == State.ADD_EVENT_DATE) {
+            String eventId = getLastEventId(chatId);
+            Event event = eventMap.get(eventId);
+            event.setDate(text);
+            event.setId(UUID.randomUUID().toString());
+            sendMessage(Bot.ADMIN, "Event created successfully!\n\n" + formatEvent(event),
+                    keyboard(Util.adminMain));
+            stateMap.put(chatId, State.MAIN_ADMIN);
+        } else if (currentState == State.EDIT_EVENT_ID) {
+
+
+            if (eventMap.containsKey(text)) {
+                userMap.get(chatId).getEventIds().add(text);
+                sendMessage(Bot.ADMIN, "What would you like to edit?\n1. Name\n2. Price\n3. Description\n4. Date");
+                stateMap.put(chatId, State.valueOf("EDIT_EVENT_FIELD"));
+            } else {
+                sendMessage(Bot.ADMIN, "Invalid event ID");
+            }
+        } else if (currentState == State.DELETE_EVENT) {
+            if (eventMap.containsKey(text)) {
+                eventMap.remove(text);
+                sendMessage(Bot.ADMIN, "Event deleted successfully!", keyboard(Util.adminMain));
+                stateMap.put(chatId, State.MAIN_ADMIN);
+            } else {
+                sendMessage(Bot.ADMIN, "Invalid event ID");
+            }
+        } else if (currentState == State.EDIT_EVENT_FIELD) {
+            switch (text) {
+                case "1" -> {
+                    stateMap.put(chatId, State.EDIT_EVENT_NAME);
+                    sendMessage(chatId, "enter name to edit");
+                }
+                case "2" -> {
+                    stateMap.put(chatId, State.EDIT_EVENT_PRICE);
+                    sendMessage(chatId, "enter name to edit");
+                }
+                case "3" -> {
+                    stateMap.put(chatId, State.EDIT_EVENT_DESC);
+                    sendMessage(chatId, "enter name to edit");
+                }
+
+                case "4" -> {
+                    stateMap.put(chatId, State.EDIT_EVENT_DATE);
+                    sendMessage(chatId, "enter name to edit");
+                }
+
+            }
+        } else if (currentState == State.EDIT_EVENT_NAME) {
+            String s = userMap.get(chatId).getEventIds().get(0);
+            Event event1 = eventMap.get(s);
+            event1.setName(text);
+            sendMessage(chatId, "Successfully");
+            stateMap.remove(chatId);
+            userMap.get(chatId).getEventIds().remove(0);
+        } else if (currentState == State.EDIT_EVENT_PRICE) {
+            String s = userMap.get(chatId).getEventIds().get(0);
+            Event event1 = eventMap.get(s);
+            event1.setPrice(Integer.parseInt(text));
+            sendMessage(chatId, "Successfully");
+            stateMap.remove(chatId);
+            userMap.get(chatId).getEventIds().remove(0);
+        } else if (currentState == State.EDIT_EVENT_DESC) {
+            String s = userMap.get(chatId).getEventIds().get(0);
+            Event event1 = eventMap.get(s);
+            event1.setDescription(text);
+            sendMessage(chatId, "Successfully");
+            stateMap.remove(chatId);
+            userMap.get(chatId).getEventIds().remove(0);
+        } else if (currentState == State.EDIT_EVENT_DATE) {
+            String s = userMap.get(chatId).getEventIds().get(0);
+            Event event1 = eventMap.get(s);
+            event1.setDate(text);
+            sendMessage(chatId, "Successfully");
+            stateMap.remove(chatId);
+            userMap.get(chatId).getEventIds().remove(0);
         }
     }
 
@@ -110,7 +216,8 @@ public class AdminService extends MainBot {
                 if (eventMap.containsKey(text)) {
                     sendMessage(Bot.ADMIN, "What would you like to edit?\n1. Name\n2. Price\n3. Description\n4. Capacity\n5. Date");
                     stateMap.put(chatId, State.valueOf("EDIT_EVENT_FIELD"));
-                    userMap.get(chatId).getEventIds().add(text);
+                    event = findEvent(text);
+//                    userMap.get(chatId).getEventIds().add(text);
                 } else {
                     sendMessage(Bot.ADMIN, "Invalid event ID");
                 }
@@ -125,6 +232,11 @@ public class AdminService extends MainBot {
                 }
             }
         }
+    }
+
+    private Event findEvent(String id) {
+
+        return eventMap.get(id);
     }
 
     private String getLastEventId(Long chatId) {
@@ -160,3 +272,4 @@ public class AdminService extends MainBot {
                 "🆔 ID: `" + event.getId() + "`";
     }
 }
+
